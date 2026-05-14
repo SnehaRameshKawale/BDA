@@ -1,0 +1,312 @@
+Step 1: Create Input File
+nano ratings.txt
+
+Write:
+
+1,101,5
+1,102,3
+2,101,4
+2,103,2
+3,104,5
+3,101,3
+
+Format:
+
+UserID,MovieID,Rating
+1. List All Movies and Number of Ratings
+Create File
+nano MovieCount.java
+Code
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MovieCount {
+
+    public static class Map extends Mapper<Object, Text, Text, IntWritable> {
+
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String[] data = value.toString().split(",");
+
+            context.write(new Text(data[1]), new IntWritable(1));
+        }
+    }
+
+    public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+        public void reduce(Text key, Iterable<IntWritable> values,
+                Context context) throws IOException, InterruptedException {
+
+            int count = 0;
+
+            for(IntWritable val : values) {
+                count += val.get();
+            }
+
+            context.write(key, new IntWritable(count));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+
+        Job job = Job.getInstance(conf, "moviecount");
+
+        job.setJarByClass(MovieCount.class);
+
+        job.setMapperClass(Map.class);
+
+        job.setReducerClass(Reduce.class);
+
+        job.setOutputKeyClass(Text.class);
+
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+Expected Output
+101 3
+102 1
+103 1
+104 1
+2. List All Movie IDs Which Have Been Rated
+Create File
+nano RatedMovies.java
+Code
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class RatedMovies {
+
+    public static class Map extends Mapper<Object, Text, Text, NullWritable> {
+
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String[] data = value.toString().split(",");
+
+            context.write(new Text(data[1]), NullWritable.get());
+        }
+    }
+
+    public static class Reduce extends Reducer<Text, NullWritable, Text, NullWritable> {
+
+        public void reduce(Text key, Iterable<NullWritable> values,
+                Context context) throws IOException, InterruptedException {
+
+            context.write(key, NullWritable.get());
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+
+        Job job = Job.getInstance(conf, "ratedmovies");
+
+        job.setJarByClass(RatedMovies.class);
+
+        job.setMapperClass(Map.class);
+
+        job.setReducerClass(Reduce.class);
+
+        job.setOutputKeyClass(Text.class);
+
+        job.setOutputValueClass(NullWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+Expected Output
+101
+102
+103
+104
+3. List All Users Who Rated Movies
+Create File
+nano UsersRated.java
+Code
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class UsersRated {
+
+    public static class Map extends Mapper<Object, Text, Text, NullWritable> {
+
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String[] data = value.toString().split(",");
+
+            context.write(new Text(data[0]), NullWritable.get());
+        }
+    }
+
+    public static class Reduce extends Reducer<Text, NullWritable, Text, NullWritable> {
+
+        public void reduce(Text key, Iterable<NullWritable> values,
+                Context context) throws IOException, InterruptedException {
+
+            context.write(key, NullWritable.get());
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+
+        Job job = Job.getInstance(conf, "usersrated");
+
+        job.setJarByClass(UsersRated.class);
+
+        job.setMapperClass(Map.class);
+
+        job.setReducerClass(Reduce.class);
+
+        job.setOutputKeyClass(Text.class);
+
+        job.setOutputValueClass(NullWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+Expected Output
+1
+2
+3
+4. Max, Min, Average Rating Given By Each User
+Create File
+nano UserRatings.java
+Code
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class UserRatings {
+
+    public static class Map extends Mapper<Object, Text, Text, IntWritable> {
+
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String[] data = value.toString().split(",");
+
+            context.write(new Text(data[0]),
+                    new IntWritable(Integer.parseInt(data[2])));
+        }
+    }
+
+    public static class Reduce extends Reducer<Text, IntWritable, Text, Text> {
+
+        public void reduce(Text key, Iterable<IntWritable> values,
+                Context context) throws IOException, InterruptedException {
+
+            int max = Integer.MIN_VALUE;
+            int min = Integer.MAX_VALUE;
+            int sum = 0;
+            int count = 0;
+
+            for(IntWritable val : values) {
+
+                int rating = val.get();
+
+                if(rating > max)
+                    max = rating;
+
+                if(rating < min)
+                    min = rating;
+
+                sum += rating;
+                count++;
+            }
+
+            double avg = (double)sum / count;
+
+            context.write(key,
+                    new Text("Max=" + max +
+                            " Min=" + min +
+                            " Avg=" + avg));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+
+        Job job = Job.getInstance(conf, "userratings");
+
+        job.setJarByClass(UserRatings.class);
+
+        job.setMapperClass(Map.class);
+
+        job.setReducerClass(Reduce.class);
+
+        job.setOutputKeyClass(Text.class);
+
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+Expected Output
+1 Max=5 Min=3 Avg=4.0
+2 Max=4 Min=2 Avg=3.0
+3 Max=5 Min=3 Avg=4.0
+Common Commands
+Compile
+export HADOOP_CLASSPATH=$(hadoop classpath)
+javac -classpath ${HADOOP_CLASSPATH} -d . FileName.java
+Create JAR
+jar -cvf movie.jar *
+Start Hadoop
+start-dfs.sh
+start-yarn.sh
+Create HDFS Folder
+hdfs dfs -mkdir /movieinput
+Upload Dataset
+hdfs dfs -put ratings.txt /movieinput
+Run Program
+
+Example:
+
+hadoop jar movie.jar MovieCount /movieinput /movieoutput
+View Output
+hdfs dfs -cat /movieoutput/part-r-00000
