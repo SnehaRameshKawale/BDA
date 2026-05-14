@@ -1,0 +1,112 @@
+1. Word Count Program (Strings)
+Step 1: Create Java File
+nano WordCount.java
+
+Paste this code:
+
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class WordCount {
+
+    public static class Map extends Mapper<Object, Text, Text, IntWritable> {
+
+        private final static IntWritable one = new IntWritable(1);
+        private Text word = new Text();
+
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String[] words = value.toString().split(" ");
+
+            for (String w : words) {
+                word.set(w);
+                context.write(word, one);
+            }
+        }
+    }
+
+    public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+        public void reduce(Text key, Iterable<IntWritable> values,
+                Context context) throws IOException, InterruptedException {
+
+            int sum = 0;
+
+            for (IntWritable val : values) {
+                sum += val.get();
+            }
+
+            context.write(key, new IntWritable(sum));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+
+        Job job = Job.getInstance(conf, "wordcount");
+
+        job.setJarByClass(WordCount.class);
+
+        job.setMapperClass(Map.class);
+
+        job.setReducerClass(Reduce.class);
+
+        job.setOutputKeyClass(Text.class);
+
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+
+Save:
+
+CTRL + X
+Y
+ENTER
+Step 2: Create Input File
+nano input.txt
+
+Write:
+
+hello world
+hello hadoop
+
+Save and exit.
+
+Step 3: Compile Program
+export HADOOP_CLASSPATH=$(hadoop classpath)
+javac -classpath ${HADOOP_CLASSPATH} -d . WordCount.java
+Step 4: Create JAR File
+jar -cvf wordcount.jar *
+Step 5: Start Hadoop
+start-dfs.sh
+start-yarn.sh
+Step 6: Create HDFS Folder
+hdfs dfs -mkdir /input
+Step 7: Upload File
+hdfs dfs -put input.txt /input
+Step 8: Run Program
+hadoop jar wordcount.jar WordCount /input /output
+Step 9: View Output
+hdfs dfs -cat /output/part-r-00000
+
+Output:
+
+hadoop 1
+hello 2
+world 1
